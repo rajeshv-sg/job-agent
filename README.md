@@ -2,6 +2,32 @@
 
 End-to-end AI agent pipeline for automated job searching, scoring, applying, and tracking.
 
+## Quick Start
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/rajeshv-sg/job-agent.git
+cd job-agent
+
+# 2. Install dependencies
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+playwright install chromium
+
+# 3. Configure environment
+cp .env.example .env
+# → Open .env and fill in your API key + LinkedIn credentials
+
+# 4. Add your resume and profile
+cp your_resume.pdf data/resumes/resume.pdf
+cp data/resumes/ats_profile.example.json data/resumes/ats_profile.json
+# → Open ats_profile.json and fill in your target roles, salary, notice period etc.
+
+# 5. Run
+python orchestrator.py
+```
+
 ## Architecture
 
 ```
