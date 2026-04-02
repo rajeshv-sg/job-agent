@@ -1,0 +1,36 @@
+{
+  "_comment": "Copy this to ats_profile.json and fill in your details.",
+
+  "target_roles": [
+    "Project Manager",
+    "Senior Project Manager",
+    "Program Manager",
+    "Product Owner"
+  ],
+
+  "target_locations": [
+    "Singapore",
+    "Remote"
+  ],
+
+  "ats_answers": {
+    "authorised_to_work":     "Yes",
+    "requires_sponsorship":   "No",
+    "notice_period":          "30 days",
+    "salary_expectation":     "100000",
+    "years_of_experience":    "5+",
+    "highest_education":      "Bachelor's Degree",
+    "currently_employed":     "Yes",
+    "willing_to_relocate":    "No",
+    "preferred_work_type":    "Hybrid"
+  },
+
+  "linkedin_url": "https://www.linkedin.com/in/your-profile/",
+  "phone": "+65 XXXX XXXX",
+
+  "_notes": [
+    "Put your actual resume PDF at data/resumes/resume.pdf",
+    "Set RESUME_PATH in .env if it's somewhere else",
+    "ats_answers keys are matched to form field labels — add more as needed"
+  ]
+}

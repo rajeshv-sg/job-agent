@@ -41,10 +41,11 @@ Open `.env` and fill in:
 
 | Variable | What to put |
 |---|---|
-| `ANTHROPIC_API_KEY` | Your key from console.anthropic.com |
+| `OPENROUTER_API_KEY` | Recommended — get free credits at openrouter.ai |
+| `ANTHROPIC_API_KEY` | Alternative — get key at console.anthropic.com |
 | `LINKEDIN_EMAIL` | Your normal LinkedIn email |
 | `LINKEDIN_PASSWORD` | Your normal LinkedIn password |
-| `TARGET_ROLES` | e.g. `Product Manager,Senior Product Manager` |
+| `TARGET_ROLES` | e.g. `Project Manager,Program Manager` |
 | `TARGET_LOCATIONS` | e.g. `Singapore,Remote` |
 | `APPLY_MODE` | Start with `confirm` — it pauses before every submit |
 | `SMTP_USER / SMTP_PASSWORD` | Only needed for outreach emails (Gmail App Password) |
@@ -56,6 +57,7 @@ The library logs in using your regular credentials and reuses cookies after the 
 
 ```bash
 cp your_resume.pdf data/resumes/resume.pdf
+cp data/resumes/ats_profile.example.json data/resumes/ats_profile.json
 ```
 
 Then edit `data/resumes/ats_profile.json` — set your target roles, locations, notice period, and any ATS screening answers (right to work, salary expectation etc.).
