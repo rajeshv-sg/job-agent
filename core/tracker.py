@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 from tinydb import TinyDB, Query
 from tinydb.storages import JSONStorage
-from tinydb.middlewares import CachingMiddleware
 
 from core.models import ApplicationRecord, ApplicationStatus, ScoredJob, ApplyChannel
 
@@ -22,7 +21,7 @@ _db: TinyDB | None = None
 def _get_db() -> TinyDB:
     global _db
     if _db is None:
-        _db = TinyDB(DB_PATH, storage=CachingMiddleware(JSONStorage))
+        _db = TinyDB(DB_PATH, storage=JSONStorage)
     return _db
 
 

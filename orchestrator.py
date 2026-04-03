@@ -90,7 +90,12 @@ async def run_pipeline() -> None:
 
     # ── Step 4: Execute applications ─────────────────────────────────────────
     console.print(f"\n[4/4] Applying to {len(accepted)} jobs...")
-    await _execute_batch(accepted, profile, app_records)
+    try:
+        await _execute_batch(accepted, profile, app_records)
+    finally:
+        # Close shared LinkedIn browser session
+        from agents.linkedin_apply import close_browser
+        await close_browser()
 
     # ── Summary ──────────────────────────────────────────────────────────────
     _print_final_summary()
