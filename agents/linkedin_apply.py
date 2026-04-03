@@ -82,12 +82,17 @@ async def apply_linkedin(
 
     try:
         page = await _get_page()
-        await page.goto(listing.url, wait_until="domcontentloaded", timeout=30_000)
-        await page.wait_for_timeout(2500)
+
+        # Navigate via the jobs search panel which properly renders the Easy Apply button.
+        # Directly visiting /jobs/view/ID/ renders a different layout without the apply button.
+        job_id = listing.url.rstrip("/").split("/")[-1]
+        search_url = f"https://www.linkedin.com/jobs/search/?currentJobId={job_id}"
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=30_000)
+        await page.wait_for_timeout(3000)
 
         # Scroll to trigger lazy-loaded buttons
         await page.evaluate("window.scrollBy(0, 300)")
-        await page.wait_for_timeout(1000)
+        await page.wait_for_timeout(1500)
 
         if listing.easy_apply:
             success = await _easy_apply(page, profile, resume_path, listing.title, listing.company)

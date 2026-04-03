@@ -9,8 +9,8 @@ from playwright.async_api import async_playwright
 
 load_dotenv()
 
-# Paste any LinkedIn job URL here that shows Easy Apply
-TEST_URL = "https://www.linkedin.com/jobs/search/?keywords=Program+Manager&location=Singapore"
+# Direct job view URL (the format the agent uses)
+TEST_URL = "https://www.linkedin.com/jobs/search/?currentJobId=4396581205"
 
 async def main():
     async with async_playwright() as pw:
@@ -49,16 +49,12 @@ async def main():
 
         print(f"✓ Logged in. URL: {page.url}")
 
-        # Go to job search
-        print(f"\nNavigating to job search...")
+        # Go directly to the job view URL
+        print(f"\nNavigating to job view: {TEST_URL}")
         await page.goto(TEST_URL, wait_until="domcontentloaded")
         await page.wait_for_timeout(3000)
-
-        # Click first job in the list
-        first_job = page.locator(".job-card-container, .jobs-search-results__list-item").first
-        if await first_job.count():
-            await first_job.click()
-            await page.wait_for_timeout(2000)
+        await page.evaluate("window.scrollBy(0, 300)")
+        await page.wait_for_timeout(1000)
 
         print(f"\nPage URL: {page.url}")
         print("\n=== ALL BUTTONS ON PAGE ===")
