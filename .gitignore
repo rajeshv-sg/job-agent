@@ -13,6 +13,7 @@ venv/
 env/
 
 # Personal data
+data/browser_profile/
 data/resumes/resume.pdf
 data/resumes/ats_profile.json
 data/resumes/tailored/

@@ -26,32 +26,42 @@ LI_PASSWORD = os.environ.get("LINKEDIN_PASSWORD", "")
 
 # ── Shared browser session (login once per run) ───────────────────────────────
 
-_pw       = None
-_browser: Browser | None        = None
+PROFILE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "browser_profile")
+
+_pw:      object | None = None
 _context: BrowserContext | None = None
 _page:    Page | None           = None
 
 
 async def _get_page() -> Page:
-    """Return the shared LinkedIn page, logging in if needed."""
-    global _pw, _browser, _context, _page
+    """
+    Return the shared LinkedIn page using a persistent browser profile.
+    The profile saves cookies/session so LinkedIn doesn't re-challenge every run.
+    On first run the browser opens and you log in manually — subsequent runs
+    reuse the saved session automatically.
+    """
+    global _pw, _context, _page
     if _page is None:
+        os.makedirs(PROFILE_DIR, exist_ok=True)
         _pw      = await async_playwright().start()
-        _browser = await _pw.chromium.launch(headless=False)
-        _context = await _browser.new_context()
-        _page    = await _context.new_page()
-        await _login(_page)
+        _context = await _pw.chromium.launch_persistent_context(
+            user_data_dir=PROFILE_DIR,
+            headless=False,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        _page = _context.pages[0] if _context.pages else await _context.new_page()
+        await _ensure_logged_in(_page)
     return _page
 
 
 async def close_browser() -> None:
     """Call once after all jobs are processed."""
-    global _pw, _browser, _context, _page
-    if _browser:
-        await _browser.close()
+    global _pw, _context, _page
+    if _context:
+        await _context.close()
     if _pw:
         await _pw.stop()
-    _pw = _browser = _context = _page = None
+    _pw = _context = _page = None
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -105,7 +115,7 @@ async def apply_linkedin(
         global _page
         try:
             _page = await _context.new_page()
-            await _login(_page)
+            await _ensure_logged_in(_page)
         except Exception:
             pass
         return False
@@ -113,37 +123,57 @@ async def apply_linkedin(
 
 # ── Login ─────────────────────────────────────────────────────────────────────
 
-async def _login(page: Page) -> None:
-    await page.goto("https://www.linkedin.com/login", wait_until="domcontentloaded")
-    await page.wait_for_timeout(1000)
+async def _ensure_logged_in(page: Page) -> None:
+    """
+    Check if already logged in via saved profile. If not, fill credentials
+    and wait for the user to complete any CAPTCHA/2FA in the browser.
+    """
+    def _is_logged_in(url: str) -> bool:
+        return url.startswith("https://www.linkedin.com/feed") or (
+            "/jobs" in url and "login" not in url and "session_redirect" not in url
+        )
 
-    # Already logged in?
-    if "feed" in page.url or "mynetwork" in page.url:
+    await page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded", timeout=30_000)
+    await page.wait_for_timeout(2000)
+
+    # Already logged in — saved session worked
+    if _is_logged_in(page.url):
+        print("[LinkedInApply] ✓ LinkedIn session restored from saved profile")
         return
 
-    await page.fill("#username", LI_EMAIL)
-    await page.fill("#password", LI_PASSWORD)
-    await page.click("button[type='submit']")
-    await page.wait_for_timeout(3000)
+    # Need to log in
+    print("[LinkedInApply] Logging in to LinkedIn...")
+    await page.goto("https://www.linkedin.com/login", wait_until="networkidle", timeout=30_000)
+    await page.wait_for_timeout(1000)
 
-    # Handle CAPTCHA / 2FA — give user 2 minutes to complete
-    if "checkpoint" in page.url or "captcha" in page.url or "challenge" in page.url:
-        print("[LinkedInApply] ⚠ CAPTCHA / 2FA detected. Complete it in the browser window (2 min timeout).")
+    try:
+        await page.wait_for_selector("#username", timeout=10_000)
+        await page.fill("#username", LI_EMAIL)
+        await page.fill("#password", LI_PASSWORD)
+        await page.click("button[type='submit']")
+        await page.wait_for_timeout(3000)
+    except Exception:
+        pass
+
+    # Handle CAPTCHA / 2FA — wait up to 3 minutes for manual completion
+    if not _is_logged_in(page.url):
+        print("[LinkedInApply] ⚠ Complete any CAPTCHA/2FA in the browser window (3 min timeout).")
         try:
-            await page.wait_for_url("**/feed/**", timeout=120_000)
+            await page.wait_for_url("**/feed/**", timeout=180_000)
         except Exception:
-            print("[LinkedInApply] ✗ Timed out waiting for CAPTCHA resolution.")
+            print("[LinkedInApply] ✗ Timed out waiting for login.")
             raise
+
+    print("[LinkedInApply] ✓ LinkedIn session established and saved")
 
 
 # ── Easy Apply flow ───────────────────────────────────────────────────────────
 
-# Multiple selector fallbacks for the Easy Apply button
+# Multiple selector fallbacks for the Easy Apply button (logged-in LinkedIn DOM)
 _EASY_APPLY_BTN = (
     "button.jobs-apply-button:has-text('Easy Apply'), "
-    "button[aria-label*='Easy Apply'], "
-    "button[data-control-name*='apply']:has-text('Easy Apply'), "
-    ".jobs-s-apply button:has-text('Easy Apply'), "
+    "button[aria-label*='Easy Apply to'], "
+    ".jobs-apply-button:has-text('Easy Apply'), "
     "button:has-text('Easy Apply')"
 )
 
