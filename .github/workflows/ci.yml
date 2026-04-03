@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check syntax (all Python files)
+        run: |
+          python -m py_compile orchestrator.py dashboard.py
+          python -m py_compile agents/profile_builder.py
+          python -m py_compile agents/job_discovery.py
+          python -m py_compile agents/relevance_scorer.py
+          python -m py_compile agents/resume_tailor.py
+          python -m py_compile agents/linkedin_apply.py
+          python -m py_compile agents/ats_portal.py
+          python -m py_compile agents/outreach_writer.py
+          python -m py_compile core/llm.py
+          python -m py_compile core/models.py
+          python -m py_compile core/tracker.py
+
+      - name: Verify core modules import cleanly
+        env:
+          OPENROUTER_API_KEY: dummy
+          LINKEDIN_EMAIL: dummy@example.com
+          LINKEDIN_PASSWORD: dummy
+        run: |
+          python -c "from core.models import CandidateProfile, JobListing, ScoredJob, ApplicationRecord"
+          python -c "from core import tracker"
+          python -c "from agents.relevance_scorer import score_jobs"
+          python -c "from agents.resume_tailor import tailor_resume"
+          python -c "from agents.outreach_writer import send_outreach"
+
+      - name: Verify .env.example has all required keys
+        run: |
+          python - <<'EOF'
+          required = [
+            "OPENROUTER_API_KEY", "LINKEDIN_EMAIL", "LINKEDIN_PASSWORD",
+            "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
+            "TARGET_ROLES", "TARGET_LOCATIONS", "RELEVANCE_THRESHOLD",
+            "APPLY_MODE", "RESUME_PATH", "ATS_PROFILE_PATH", "DB_PATH",
+          ]
+          with open(".env.example") as f:
+              content = f.read()
+          missing = [k for k in required if k not in content]
+          if missing:
+              print(f"Missing keys in .env.example: {missing}")
+              exit(1)
+          print("All required keys present in .env.example")
+          EOF
