@@ -143,11 +143,11 @@ async def _ensure_logged_in(page: Page) -> None:
 
     # Already logged in — saved session worked
     if _is_logged_in(page.url):
-        print("[LinkedInApply] ✓ LinkedIn session restored from saved profile")
+        print("[LinkedInApply] ✓ LinkedIn session restored from saved profile", flush=True)
         return
 
     # Need to log in
-    print("[LinkedInApply] Logging in to LinkedIn...")
+    print("[LinkedInApply] Logging in to LinkedIn...", flush=True)
     await page.goto("https://www.linkedin.com/login", wait_until="networkidle", timeout=30_000)
     await page.wait_for_timeout(1000)
 
@@ -162,24 +162,24 @@ async def _ensure_logged_in(page: Page) -> None:
 
     # Handle CAPTCHA / 2FA — wait up to 3 minutes for manual completion
     if not _is_logged_in(page.url):
-        print("[LinkedInApply] ⚠ Complete any CAPTCHA/2FA in the browser window (3 min timeout).")
+        print("[LinkedInApply] ⚠ Complete any CAPTCHA/2FA in the browser window (3 min timeout).", flush=True)
         try:
             await page.wait_for_url("**/feed/**", timeout=180_000)
         except Exception:
-            print("[LinkedInApply] ✗ Timed out waiting for login.")
+            print("[LinkedInApply] ✗ Timed out waiting for login.", flush=True)
             raise
 
-    print("[LinkedInApply] ✓ LinkedIn session established and saved")
+    print("[LinkedInApply] ✓ LinkedIn session established and saved", flush=True)
 
 
 # ── Easy Apply flow ───────────────────────────────────────────────────────────
 
-# Multiple selector fallbacks for the Easy Apply button (logged-in LinkedIn DOM)
+# Specific selectors for the actual Easy Apply button.
+# NOTE: Do NOT use generic button:has-text('Easy Apply') — it matches the
+# "Easy Apply filter" pill first, which is wrong.
 _EASY_APPLY_BTN = (
     "button.jobs-apply-button:has-text('Easy Apply'), "
-    "button[aria-label*='Easy Apply to'], "
-    ".jobs-apply-button:has-text('Easy Apply'), "
-    "button:has-text('Easy Apply')"
+    "button[aria-label^='Easy Apply to']"
 )
 
 
@@ -197,7 +197,7 @@ async def _easy_apply(
     try:
         await btn.first.wait_for(timeout=5_000)
     except Exception:
-        print("[LinkedInApply] Easy Apply button not found")
+        print("[LinkedInApply] Easy Apply button not found", flush=True)
         return False
 
     await btn.first.click()
@@ -247,7 +247,7 @@ async def _easy_apply(
             await next_btn.first.click()
             await page.wait_for_timeout(1200)
         else:
-            print("[LinkedInApply] ⚠ Could not find Next/Submit button")
+            print("[LinkedInApply] ⚠ Could not find Next/Submit button", flush=True)
             break
 
     return False
